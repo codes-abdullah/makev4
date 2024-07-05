@@ -5,11 +5,14 @@ PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PROJECT_DIR := $(PROJECT_DIR:/=)
 PROJECT_NAME := $(notdir $(PROJECT_DIR))
 CXX := g++
-#don't specify -O0 or -g flags, will be inserted depending on IDE
-CXXFLAGS := -Wall -Wextra -Wno-unused-parameter
+#don't specify flags, will be inserted depending on IDE
+CXXFLAGS :=
+CXXFLAGS_DEBUG := -g -Wall -Wextra -Wno-unused-parameter 
+CXXFLAGS_RUN := -O0 -Wall -Wextra -Wno-unused-parameter
 ####################
 SRC_DIR_NAME := src
 BUILD_DIR_NAME := build
+DEBUG_DIR_NAME := build
 OBJ_DIR_NAME := obj
 TARGET_FILE_NAME := $(PROJECT_NAME)
 ####################
@@ -17,6 +20,12 @@ INCLUDE_LIBRARY := glfw3 glew
 INCLUDE_LIBRARY_CFLAGS := $(shell pkg-config --cflags $(INCLUDE_LIBRARY))
 INCLUDE_LIBRARY_LIBS_FLAGS := $(shell pkg-config --libs $(INCLUDE_LIBRARY))
 ####################
+DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
+DEFAULT_DEBUG_DIR := $(PROJECT_DIR)/$(DEBUG_DIR_NAME)
+DEFAULT_OBJ_DIR := $(DEFAULT_BUILD_DIR)/$(OBJ_DIR_NAME)
+DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(PROJECT_NAME)
+DEFAULT_DEBUG_TARGET := $(DEFAULT_BUILD_DIR)/$(PROJECT_NAME)
+
 BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
 OBJ_DIR := $(BUILD_DIR)/$(OBJ_DIR_NAME)
 TARGET := $(BUILD_DIR)/$(TARGET_FILE_NAME)
@@ -27,6 +36,13 @@ SRC_FILES := $(shell find $(SRC_DIR) -name '*.cpp' -or -name '*.c' -or -name '*.
 OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(SRC_FILES))
 OBJ_FILES := $(subst $(SRC_DIR),$(OBJ_DIR),$(OBJ_FILES))
 starts_millis := $(shell date +%s%N | cut -b1-13)
+####################
+ECLIPSE_BUILD_DIR := $(BUILD_DIR)/default
+ECLIPSE_BUILD_OBJ_DIR := $(ECLIPSE_BUILD_DIR)/obj
+ECLIPSE_DEBUG_DIR := $(BUILD_DIR)/make.debug.linux.x86_64
+ECLIPSE_DEBUG_OBJ_DIR := $(ECLIPSE_DEBUG_DIR)/obj
+ECLIPSE_BUILD_TARGET := $(ECLIPSE_BUILD_DIR)/$(TARGET_FILE_NAME)
+ECLIPSE_DEBUG_TARGET := $(ECLIPSE_DEBUG_DIR)/$(TARGET_FILE_NAME)
 #####################
 MAKE_DEPS := $(OBJ_FILES:.o=.d)
 INCLUDE_DIR := $(PROJECT_DIR)/include
@@ -36,9 +52,9 @@ CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
 ##################### ECLIPSE SPECIFIC MODE SETUP
 #####################
 ifeq ($(BUILD_MODE),debug)
-	CXXFLAGS += -g
+	CXXFLAGS += CXXFLAGS_DEBUG
 else ifeq ($(BUILD_MODE),run)
-	CXXFLAGS += -02
+	CXXFLAGS += CXXFLAGS_RUN
 endif
 #####################
 #####################
@@ -54,11 +70,11 @@ all: $(TARGET)
 Release: preRelease all postRelease
 Debug: preDebug all postDebug
 preRelease:	
-	$(eval CXXFLAGS += -02)
+	$(eval CXXFLAGS += CXXFLAGS_RUN)
 postRelease:
 	#move files to obj and bin dirs
 preDebug:
-	$(eval CXXFLAGS += -g)
+	$(eval CXXFLAGS += CXXFLAGS_DEBUG)
 postDebug:
 #####################
 #####################
@@ -89,7 +105,12 @@ test:
 	@echo "INCLUDE_LIBRARY_LIBS_FLAGS: $(INCLUDE_LIBRARY_LIBS_FLAGS)"
 	@echo "INCLUDE_LIBRARY_CFLAGS: $(INCLUDE_LIBRARY_CFLAGS)"
 	@echo "TRARGET: $(TARGET)"
-	@echo "Millis: $(millis)"
+	@echo "ECLIPSE_BUILD_DIR: $(ECLIPSE_BUILD_DIR)"
+	@echo "ECLIPSE_BUILD_OBJ_DIR: $(ECLIPSE_BUILD_OBJ_DIR)"
+	@echo "ECLIPSE_BUILD_TARGET: $(ECLIPSE_BUILD_TARGET)"
+	@echo "ECLIPSE_DEBUG_OBJ_DIR: $(ECLIPSE_DEBUG_OBJ_DIR)"
+	@echo "ECLIPSE_DEBUG_DIR: $(ECLIPSE_DEBUG_DIR)"
+	@echo "ECLIPSE_DEBUG_TARGET: $(ECLIPSE_DEBUG_TARGET)"	
 
 .PHONY: all clean
 clean:
