@@ -1,3 +1,5 @@
+#IDE:=CODE_BLOCKS
+IDE:=ECLIPSE
 ####################
 PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 #remove trailing slash
@@ -33,14 +35,8 @@ DEFAULT_DEBUG_OBJ_FILES := $(DEFAULT_BUILD_OBJ_FILES)
 DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
 DEFAULT_DEBUG_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_DEBUG_OBJ_DIR),$(DEFAULT_DEBUG_OBJ_FILES))
 ####################
-ECLIPSE_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
-ECLIPSE_BUILD_OBJ_DIR := $(ECLIPSE_BUILD_DIR)/obj
-ECLIPSE_DEBUG_DIR := $(DEFAULT_DEBUG_DIR)/make.debug.linux.x86_64
-ECLIPSE_DEBUG_OBJ_DIR := $(ECLIPSE_DEBUG_DIR)/obj
-ECLIPSE_BUILD_TARGET := $(ECLIPSE_BUILD_DIR)/$(TARGET_FILE_NAME)
-ECLIPSE_DEBUG_TARGET := $(ECLIPSE_DEBUG_DIR)/$(TARGET_FILE_NAME)
-#####################
-MAKE_DEPS := $(OBJ_FILES:.o=.d)
+MAKE_BUILD_DEPS := $(DEFAULT_BUILD_OBJ_FILES:.o=.d)
+MAKE_DEBUG_DEPS := $(DEFAULT_DEBUG_OBJ_FILES:.o=.d)
 INCLUDE_DIR := $(PROJECT_DIR)/include
 INCLUDE_DIR_FLAGS := $(addprefix -I,$(INCLUDE_DIR))
 CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
@@ -48,16 +44,22 @@ CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
 ##################### ECLIPSE SPECIFIC MODE SETUP
 #####################
 ifeq ($(BUILD_MODE),debug)
-	CXXFLAGS += CXXFLAGS_DEBUG
+	ECLIPSE_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
+	ECLIPSE_BUILD_OBJ_DIR := $(ECLIPSE_BUILD_DIR)/obj
+	ECLIPSE_BUILD_TARGET := $(ECLIPSE_BUILD_DIR)/$(TARGET_FILE_NAME)
+	CXXFLAGS += CXXFLAGS_BUILD
 else ifeq ($(BUILD_MODE),run)
-	CXXFLAGS += CXXFLAGS_RUN
+	ECLIPSE_DEBUG_DIR := $(DEFAULT_DEBUG_DIR)/make.debug.linux.x86_64
+	ECLIPSE_DEBUG_OBJ_DIR := $(ECLIPSE_DEBUG_DIR)/obj
+	ECLIPSE_DEBUG_TARGET := $(ECLIPSE_DEBUG_DIR)/$(TARGET_FILE_NAME)
+	CXXFLAGS += CXXFLAGS_DEBUG
 endif
 #####################
 #####################
 #####################
 
 
-all: $(TARGET) 
+all: $(TARGET)
 	$(eval  ends_millis := $(shell date +%s%N | cut -b1-13))
 	@echo done in $(shell ./xdiff $(ends_millis) $(starts_millis)) millis
 #####################
@@ -66,7 +68,7 @@ all: $(TARGET)
 Release: preRelease all postRelease
 Debug: preDebug all postDebug
 preRelease:	
-	$(eval CXXFLAGS += CXXFLAGS_RUN)
+	$(eval CXXFLAGS += CXXFLAGS_BUILD)
 postRelease:
 	#move files to obj and bin dirs
 preDebug:
@@ -119,10 +121,11 @@ test:
 	@echo "ECLIPSE_DEBUG_OBJ_DIR: $(ECLIPSE_DEBUG_OBJ_DIR)"
 	@echo "ECLIPSE_BUILD_TARGET: $(ECLIPSE_BUILD_TARGET)"
 	@echo "ECLIPSE_DEBUG_TARGET: $(ECLIPSE_DEBUG_TARGET)"
-	@echo "MAKE_DEPS: $(MAKE_DEPS)"
+	@echo "MAKE_BUILD_DEPS: $(MAKE_BUILD_DEPS)"
+	@echo "MAKE_DEBUG_DEPS: $(MAKE_DEBUG_DEPS)"
 	@echo "INCLUDE_DIR: $(INCLUDE_DIR)"
 	@echo "INCLUDE_DIR_FLAGS: $(INCLUDE_DIR_FLAGS)"
-
+FRIEND
 .PHONY: all clean
 clean:
 	rm -rf $(OBJ_DIR) $(BUILD_DIR)
