@@ -1,83 +1,129 @@
+################# for IDE's, uncomment one of below
 #IDE:=CODE_BLOCKS
-IDE:=ECLIPSE
-####################
+#IDE:=ECLIPSE
+################# for non-IDE's, specify NO_IDE, either run or debug
+NO_IDE:=debug
+#NO_IDE:=debug
+####
+####
 PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 #remove trailing slash
 PROJECT_DIR := $(PROJECT_DIR:/=)
 PROJECT_NAME := $(notdir $(PROJECT_DIR))
 CXX := g++
-#don't specify flags, will be inserted depending on IDE
+#################don't specify flags, will be inserted depending on IDE
 CXXFLAGS :=
 CXXFLAGS_DEBUG := -g -Wall -Wextra -Wno-unused-parameter 
 CXXFLAGS_BUILD := -O0 -Wall -Wextra -Wno-unused-parameter
-####################
+####
 SRC_DIR_NAME := src
 BUILD_DIR_NAME := build
 DEBUG_DIR_NAME := debug
 OBJ_DIR_NAME := obj
 TARGET_FILE_NAME := $(PROJECT_NAME)
-####################
+####
 INCLUDE_LIBRARY := glfw3 glew
 INCLUDE_LIBRARY_CFLAGS := $(shell pkg-config --cflags $(INCLUDE_LIBRARY))
 INCLUDE_LIBRARY_LIBS_FLAGS := $(shell pkg-config --libs $(INCLUDE_LIBRARY))
-####################
+#####
+##### DEFAULT (NO_IDE) SETUP
+#####
+
+ifeq($(IDE),)
+	ifeq($(NO_IDE),run)
+	endif
+endif
+
 DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
 DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/$(OBJ_DIR_NAME)
 DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(PROJECT_NAME)
+
 DEFAULT_DEBUG_DIR := $(PROJECT_DIR)/$(DEBUG_DIR_NAME)
 DEFAULT_DEBUG_OBJ_DIR := $(DEFAULT_DEBUG_DIR)/$(OBJ_DIR_NAME)
 DEFAULT_DEBUG_TARGET := $(DEFAULT_DEBUG_DIR)/$(PROJECT_NAME)
-####################
+####
 DEFAULT_SRC_DIR := $(PROJECT_DIR)/$(SRC_DIR_NAME)
 DEFAULT_SRC_FILES := $(shell find $(DEFAULT_SRC_DIR) -name '*.cpp' -or -name '*.c' -or -name '*.s')
 DEFAULT_BUILD_OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(DEFAULT_SRC_FILES))
 DEFAULT_DEBUG_OBJ_FILES := $(DEFAULT_BUILD_OBJ_FILES)
 DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
 DEFAULT_DEBUG_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_DEBUG_OBJ_DIR),$(DEFAULT_DEBUG_OBJ_FILES))
-####################
+####
 MAKE_BUILD_DEPS := $(DEFAULT_BUILD_OBJ_FILES:.o=.d)
 MAKE_DEBUG_DEPS := $(DEFAULT_DEBUG_OBJ_FILES:.o=.d)
 INCLUDE_DIR := $(PROJECT_DIR)/include
 INCLUDE_DIR_FLAGS := $(addprefix -I,$(INCLUDE_DIR))
 CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
-#####################
-##################### ECLIPSE SPECIFIC MODE SETUP
-#####################
-BUILD_MODE:=debug
-ifeq ($(BUILD_MODE),run)
-	ECLIPSE_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
-	ECLIPSE_BUILD_OBJ_DIR := $(ECLIPSE_BUILD_DIR)/obj
-	ECLIPSE_BUILD_TARGET := $(ECLIPSE_BUILD_DIR)/$(TARGET_FILE_NAME)	
-	CXXFLAGS += CXXFLAGS_BUILD
-else ifeq ($(BUILD_MODE),debug)
-	ECLIPSE_DEBUG_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
-	ECLIPSE_DEBUG_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
-	ECLIPSE_DEBUG_TARGET := $(ECLIPSE_DEBUG_DIR)/$(TARGET_FILE_NAME)
-	CXXFLAGS += CXXFLAGS_DEBUG
+################# ECLIPSE SPECIFIC SETUP
+ifneq ($(BUILD_MODE),)
+	ifeq ($(BUILD_MODE),run)
+		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
+		CXXFLAGS += CXXFLAGS_BUILD
+	else ifeq ($(BUILD_MODE),debug)
+		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
+		CXXFLAGS += CXXFLAGS_DEBUG
+	endif	
+	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
+	DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
 endif
-#####################
-#####################
-#####################
+#####
 
 
-all: $(TARGET)
+check:
+#nothing set
+ifeq ($(IDE),)
+ifeq ($(NO_IDE),)
+	$(error your must set IDE or NO_IDE)
+endif
+endif
+
+#both set
+ifneq ($(IDE),)
+ifneq ($(NO_IDE),)
+	$(error can't set IDE and NO_IDE at same time, use one of them only)
+endif
+endif
+
+#unsupoorted IDE
+ifeq ($(NO_IDE),)
+ifneq ($(IDE),ECLIPSE)
+ifneq ($(IDE),CODE_BLOCKS)
+	$(error IDE=$(IDE) is unsupported)
+endif
+endif
+endif
+
+#unsupoorted NO_IDE
+ifeq ($(IDE),)
+ifneq ($(NO_IDE),run)
+ifneq ($(NO_IDE),debug)
+	$(error NO_IDE=$(NO_IDE) is unsupported)
+endif
+endif
+endif
+
+
+all: check $(TARGET)
 	$(eval  ends_millis := $(shell date +%s%N | cut -b1-13))
 	@echo done in $(shell ./xdiff $(ends_millis) $(starts_millis)) millis
-#####################
-##################### CODE::BLOCKS SPECIFIC SETUP
-#####################
-Release: preRelease all postRelease
-Debug: preDebug all postDebug
+debug: all
+
+################# CODE::BLOCKS SPECIFIC SETUP
+Release: preRelease all
+Debug: preDebug debug
 preRelease:	
+	$(eval DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Release)
+	$(eval DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Release)
+	$(eval DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME))
 	$(eval CXXFLAGS += CXXFLAGS_BUILD)
-postRelease:
-	#move files to obj and bin dirs
 preDebug:
+	$(eval DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Debug)
+	$(eval DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Debug)
+	$(eval DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME))
 	$(eval CXXFLAGS += CXXFLAGS_DEBUG)
-postDebug:
-#####################
-#####################
-#####################
+#####
+#####
+#####
 
 
 
@@ -85,11 +131,11 @@ $(TARGET): compile link
 
 
 compile:
-	@echo "compiling now"
-	$(CXX) $(INCLUDE_DIR_FLAGS) -c $(SRC_FILES)
+	#@echo "compiling now"
+	#$(CXX) $(INCLUDE_DIR_FLAGS) -c $(SRC_FILES)
 link:
-	@echo "linking now"
-	$(CXX) $(INCLUDE_LIBRARY_CFLAGS) *.o -o app $(INCLUDE_LIBRARY_LIBS_FLAGS)
+	#@echo "linking now"
+	#$(CXX) $(INCLUDE_LIBRARY_CFLAGS) *.o -o app $(INCLUDE_LIBRARY_LIBS_FLAGS)
 test:
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
@@ -116,12 +162,6 @@ test:
 	@echo "DEFAULT_SRC_FILES: $(DEFAULT_SRC_FILES)"
 	@echo "DEFAULT_BUILD_OBJ_FILES: $(DEFAULT_BUILD_OBJ_FILES)"
 	@echo "DEFAULT_DEBUG_OBJ_FILES: $(DEFAULT_DEBUG_OBJ_FILES)"
-	@echo "ECLIPSE_BUILD_DIR: $(ECLIPSE_BUILD_DIR)"
-	@echo "ECLIPSE_BUILD_OBJ_DIR: $(ECLIPSE_BUILD_OBJ_DIR)"
-	@echo "ECLIPSE_DEBUG_DIR: $(ECLIPSE_DEBUG_DIR)"
-	@echo "ECLIPSE_DEBUG_OBJ_DIR: $(ECLIPSE_DEBUG_OBJ_DIR)"
-	@echo "ECLIPSE_BUILD_TARGET: $(ECLIPSE_BUILD_TARGET)"
-	@echo "ECLIPSE_DEBUG_TARGET: $(ECLIPSE_DEBUG_TARGET)"
 	@echo "MAKE_BUILD_DEPS: $(MAKE_BUILD_DEPS)"
 	@echo "MAKE_DEBUG_DEPS: $(MAKE_DEBUG_DEPS)"
 	@echo "INCLUDE_DIR: $(INCLUDE_DIR)"
