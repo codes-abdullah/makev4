@@ -51,7 +51,7 @@ MAKE_DEBUG_DEPS := $(DEFAULT_DEBUG_OBJ_FILES:.o=.d)
 INCLUDE_DIR := $(PROJECT_DIR)/include
 INCLUDE_DIR_FLAGS := $(addprefix -I,$(INCLUDE_DIR))
 CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
-xxx:=a
+
 
 
 
@@ -83,10 +83,10 @@ preDebug:
 $(DEFAULT_BUILD_TARGET): $(DEFAULT_BUILD_OBJ_FILES)
 	@echo "linking now: $(DEFAULT_BUILD_TARGET)"
 	mkdir -p $(dir $(DEFAULT_BUILD_TARGET))
-	
+	$(CXX) $(INCLUDE_LIBRARY_CFLAGS) $^ -o $(DEFAULT_BUILD_TARGET) $(INCLUDE_LIBRARY_LIBS_FLAGS)
 $(DEFAULT_BUILD_OBJ_DIR)/%.cpp.o: $(DEFAULT_SRC_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	@echo $< -o $@
+	#$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 	
 	
 check:
@@ -95,15 +95,12 @@ check:
 ifeq ($(IDE),ECLIPSE)
 BUILD_MODE ?= run
 	ifeq ($(BUILD_MODE),run)
-		xxx+=A
 		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
 		CXXFLAGS += $(CXXFLAGS_BUILD)
 	else ifeq ($(BUILD_MODE),debug)
-		xxx+=B
 		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
 		CXXFLAGS += $(CXXFLAGS_DEBUG)
 	else ifeq ($(BUILD_MODE),linuxtools)
-		xxx+=C
 		CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
 		LDFLAGS += -pg -fprofile-arcs -ftest-coverage
 		EXTRA_CLEAN += $(PROJECT_NAME).gcda $(PROJECT_NAME).gcno $(PROJECT_ROOT)gmon.out
@@ -111,9 +108,9 @@ BUILD_MODE ?= run
 	else
 		$(error ECLIPSE BUILD_MODE=$(BUILD_MODE) not supported by this Makefile)
 	endif
-	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
-	DEFAULT_BUILD_OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(DEFAULT_SRC_FILES))
-	DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
+	DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_DIR)/objxxxxxxx,$(DEFAULT_BUILD_OBJ_FILES))
+	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/objXZZZZZZZZZZ
+	DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
 endif
 #####
 
@@ -179,7 +176,7 @@ test: check
 	@echo "MAKE_DEBUG_DEPS: $(MAKE_DEBUG_DEPS)"
 	@echo "INCLUDE_DIR: $(INCLUDE_DIR)"
 	@echo "INCLUDE_DIR_FLAGS: $(INCLUDE_DIR_FLAGS)"
-	@echo "xxx: $(xxx)"
+
 
 .PHONY: all clean
 clean:
