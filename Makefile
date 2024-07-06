@@ -29,12 +29,11 @@ INCLUDE_LIBRARY_LIBS_FLAGS := $(shell pkg-config --libs $(INCLUDE_LIBRARY))
 ##### DEFAULT (NO_IDE) SETUP
 #####
 
-ifeq($(IDE),)
-	ifeq($(NO_IDE),run)
-	endif
+DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
+ifeq ($(NO_IDE),debug)
+	DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(DEBUG_DIR_NAME)
 endif
 
-DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
 DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/$(OBJ_DIR_NAME)
 DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(PROJECT_NAME)
 
@@ -55,14 +54,21 @@ INCLUDE_DIR := $(PROJECT_DIR)/include
 INCLUDE_DIR_FLAGS := $(addprefix -I,$(INCLUDE_DIR))
 CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
 ################# ECLIPSE SPECIFIC SETUP
-ifneq ($(BUILD_MODE),)
+ifeq ($(IDE),ECLIPSE)
 	ifeq ($(BUILD_MODE),run)
 		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
 		CXXFLAGS += CXXFLAGS_BUILD
 	else ifeq ($(BUILD_MODE),debug)
 		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
 		CXXFLAGS += CXXFLAGS_DEBUG
-	endif	
+	else ifeq ($(BUILD_MODE),linuxtools)
+		CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
+		LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+		EXTRA_CLEAN += $(PROJECT_NAME).gcda $(PROJECT_NAME).gcno $(PROJECT_ROOT)gmon.out
+		EXTRA_CMDS = rm -rf $(PROJECT_NAME).gcda
+	else
+		$(error ECLIPSE BUILD_MODE=$(BUILD_MODE) not supported by this Makefile)
+	endif
 	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
 	DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
 endif
