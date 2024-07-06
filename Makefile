@@ -2,10 +2,11 @@
 #IDE:=CODE_BLOCKS
 #IDE:=ECLIPSE
 ################# for non-IDE's, specify NO_IDE, either run or debug
+#NO_IDE:=run
 NO_IDE:=debug
-#NO_IDE:=debug
 ####
 ####
+starts_millis := ./currentMillis.sh
 PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 #remove trailing slash
 PROJECT_DIR := $(PROJECT_DIR:/=)
@@ -28,25 +29,22 @@ INCLUDE_LIBRARY_LIBS_FLAGS := $(shell pkg-config --libs $(INCLUDE_LIBRARY))
 #####
 ##### DEFAULT (NO_IDE) SETUP
 #####
-
 DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
-ifeq ($(NO_IDE),debug)
+
+ifeq ($(NO_IDE),run)
+	CXXFLAGS += $(CXXFLAGS_BUILD)
+else ifeq ($(NO_IDE),debug)
 	DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(DEBUG_DIR_NAME)
+	CXXFLAGS += $(CXXFLAGS_DEBUG)
 endif
 
 DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/$(OBJ_DIR_NAME)
 DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(PROJECT_NAME)
-
-DEFAULT_DEBUG_DIR := $(PROJECT_DIR)/$(DEBUG_DIR_NAME)
-DEFAULT_DEBUG_OBJ_DIR := $(DEFAULT_DEBUG_DIR)/$(OBJ_DIR_NAME)
-DEFAULT_DEBUG_TARGET := $(DEFAULT_DEBUG_DIR)/$(PROJECT_NAME)
 ####
 DEFAULT_SRC_DIR := $(PROJECT_DIR)/$(SRC_DIR_NAME)
 DEFAULT_SRC_FILES := $(shell find $(DEFAULT_SRC_DIR) -name '*.cpp' -or -name '*.c' -or -name '*.s')
 DEFAULT_BUILD_OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(DEFAULT_SRC_FILES))
-DEFAULT_DEBUG_OBJ_FILES := $(DEFAULT_BUILD_OBJ_FILES)
 DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
-DEFAULT_DEBUG_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_DEBUG_OBJ_DIR),$(DEFAULT_DEBUG_OBJ_FILES))
 ####
 MAKE_BUILD_DEPS := $(DEFAULT_BUILD_OBJ_FILES:.o=.d)
 MAKE_DEBUG_DEPS := $(DEFAULT_DEBUG_OBJ_FILES:.o=.d)
@@ -109,9 +107,8 @@ endif
 endif
 
 
-all: check $(TARGET)
-	$(eval  ends_millis := $(shell date +%s%N | cut -b1-13))
-	@echo done in $(shell ./xdiff $(ends_millis) $(starts_millis)) millis
+all: check $(DEFAULT_BUILD_TARGET)
+
 debug: all
 
 ################# CODE::BLOCKS SPECIFIC SETUP
@@ -133,15 +130,12 @@ preDebug:
 
 
 
-$(TARGET): compile link
-
-
-compile:
-	#@echo "compiling now"
-	#$(CXX) $(INCLUDE_DIR_FLAGS) -c $(SRC_FILES)
-link:
-	#@echo "linking now"
-	#$(CXX) $(INCLUDE_LIBRARY_CFLAGS) *.o -o app $(INCLUDE_LIBRARY_LIBS_FLAGS)
+$(DEFAULT_BUILD_TARGET): $(DEFAULT_BUILD_OBJ_FILES)
+	@echo "linking now"
+	$(CXX) $(INCLUDE_LIBRARY_CFLAGS) $^ -o $(DEFAULT_BUILD_TARGET) $(INCLUDE_LIBRARY_LIBS_FLAGS)
+$(DEFAULT_BUILD_OBJ_DIR)/%.cpp.o: $(DEFAULT_SRC_DIR)/%.cpp
+	mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 test:
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
@@ -176,6 +170,6 @@ test:
 
 .PHONY: all clean
 clean:
-	rm -rf $(OBJ_DIR) $(BUILD_DIR)
+	rm -rf $(DEFAULT_BUILD_OBJ_DIR) $(DEFAULT_BUILD_DIR)
 
 
