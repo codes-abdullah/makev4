@@ -29,7 +29,6 @@ INCLUDE_LIBRARY_LIBS_FLAGS := $(shell pkg-config --libs $(INCLUDE_LIBRARY))
 #####
 ##### DEFAULT (NO_IDE) SETUP
 #####
-DEFAULT_CLEAN_DIRS :=
 DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
 
 ifeq ($(NO_IDE),run)
@@ -54,59 +53,65 @@ INCLUDE_DIR_FLAGS := $(addprefix -I,$(INCLUDE_DIR))
 CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
 
 
+
+
+
+#####################
+define check := 
 ################# ECLIPSE SPECIFIC SETUP
 ifeq ($(IDE),ECLIPSE)
-	BUILD_MODE ?= run
-	ifeq ($(BUILD_MODE),run)
-		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
-		CXXFLAGS += $(CXXFLAGS_BUILD)
-	else ifeq ($(BUILD_MODE),debug)
-		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
-		CXXFLAGS += $(CXXFLAGS_DEBUG)
-	else ifeq ($(BUILD_MODE),linuxtools)
-		CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
-		LDFLAGS += -pg -fprofile-arcs -ftest-coverage
-		EXTRA_CLEAN += $(PROJECT_NAME).gcda $(PROJECT_NAME).gcno $(PROJECT_ROOT)gmon.out
-		EXTRA_CMDS = rm -rf $(PROJECT_NAME).gcda
-	else
-		$(error ECLIPSE BUILD_MODE=$(BUILD_MODE) not supported by this Makefile)
-	endif
-	DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_DIR)/obj,$(DEFAULT_BUILD_OBJ_FILES))
-	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
-	DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
-	DEFAULT_CLEAN_DIRS := $(DEFAULT_BUILD_DIR)
-else ifeq ($(IDE),CODE_BLOCKS)
-	ifeq (,$(MAKECMDGOALS),cleanRelease)
-	ifeq ($(MAKECMDGOALS),Release)
-		DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Release
-		DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Release
-		DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
-		CXXFLAGS += $(CXXFLAGS_BUILD)
-	else ifeq ($(MAKECMDGOALS),Debug)
-		DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Debug
-		DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Debug
-		DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
-		CXXFLAGS += $(CXXFLAGS_DEBUG)
-	else ifeq ($(MAKECMDGOALS),cleanRelease)
-		
-	else ifeq ($(MAKECMDGOALS),cleanDebug)
-	else
-		$(error CODE_BLOCK MAKECMDGOALS=$(MAKECMDGOALS) not supported by this Makefile)
-	DEFAULT_CLEAN_DIRS := $(DEFAULT_BUILD_DIR) $(DEFAULT_BUILD_OBJ_DIR)
+ifeq ($(info BUILD_MODE),run)
+xxx+=A
+DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
+CXXFLAGS += $(CXXFLAGS_BUILD)
+else ifeq ($(info BUILD_MODE),debug)
+xxx+=B
+DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
+CXXFLAGS += $(CXXFLAGS_DEBUG)
+else ifeq ($(1),linuxtools)
+xxx+=C
+CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
+LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+EXTRA_CLEAN += $(PROJECT_NAME).gcda $(PROJECT_NAME).gcno $(PROJECT_ROOT)gmon.out
+EXTRA_CMDS = rm -rf $(PROJECT_NAME).gcda
+else
+$(error ECLIPSE BUILD_MODE=$(BUILD_MODE) not supported by this Makefile)
+endif
+DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/objXXXXXXXX
+DEFAULT_BUILD_OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(DEFAULT_SRC_FILES))
+DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
+xxx+=ZZZZZZ
 endif
 #####
+endef
 
 
 
-all: check $(DEFAULT_BUILD_TARGET)
+BUILD_MODE:=run
+$(eval $(check,run,debug))
+$(info $(xxx))
+
+
+
+
+
+all: $(DEFAULT_BUILD_TARGET)
 
 debug: all
 
 ################# CODE::BLOCKS SPECIFIC SETUP
-Release: all
-Debug: debug
-cleanRelease: clean
-cleanDebug: clean
+Release: preRelease all
+Debug: preDebug debug
+preRelease:	
+	$(eval DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Release)
+	$(eval DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Release)
+	$(eval DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME))
+	$(eval CXXFLAGS += $(CXXFLAGS_BUILD))
+preDebug:
+	$(eval DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Debug)
+	$(eval DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Debug)
+	$(eval DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME))
+	$(eval CXXFLAGS += $(CXXFLAGS_DEBUG))
 #####
 #####
 #####
@@ -114,15 +119,17 @@ cleanDebug: clean
 
 
 $(DEFAULT_BUILD_TARGET): $(DEFAULT_BUILD_OBJ_FILES)
-	@echo "linking now: $(DEFAULT_BUILD_TARGET)"
-	mkdir -p $(dir $(DEFAULT_BUILD_TARGET))
-	$(CXX) $(INCLUDE_LIBRARY_CFLAGS) $^ -o $(DEFAULT_BUILD_TARGET) $(INCLUDE_LIBRARY_LIBS_FLAGS)
+	#@echo "linking now: $(DEFAULT_BUILD_TARGET)"
+	#mkdir -p $(dir $(DEFAULT_BUILD_TARGET))
+	
 $(DEFAULT_BUILD_OBJ_DIR)/%.cpp.o: $(DEFAULT_SRC_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+	@echo "$< -o =====> $@"
 	
 	
-check:
+
+
+
 
 #nothing set
 ifeq ($(IDE),)
@@ -157,14 +164,12 @@ endif
 endif
 
 
-test: check
-	@echo "IDE: $(IDE)"
-	@echo "BUILD_MODE: $(BUILD_MODE)"	
+test:
+	@echo "PROJECT_DIR: $(PROJECT_DIR)"
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
 	@echo "PROJECT_NAME: $(PROJECT_NAME)"
 	@echo "CXX: $(CXX)"
 	@echo "CXXFLAGS: $(CXXFLAGS)"
-	@echo "CPPFLAGS: $(CPPFLAGS)"
 	@echo "CXXFLAGS_DEBUG: $(CXXFLAGS_DEBUG)"
 	@echo "CXXFLAGS_BUILD: $(CXXFLAGS_BUILD)"
 	@echo "SRC_DIR_NAME: $(SRC_DIR_NAME)"
@@ -177,15 +182,16 @@ test: check
 	@echo "INCLUDE_LIBRARY_LIBS_FLAGS: $(INCLUDE_LIBRARY_LIBS_FLAGS)"
 	@echo "DEFAULT_BUILD_DIR: $(DEFAULT_BUILD_DIR)"
 	@echo "DEFAULT_BUILD_OBJ_DIR: $(DEFAULT_BUILD_OBJ_DIR)"
-	@echo "DEFAULT_BUILD_OBJ_FILES: $(DEFAULT_BUILD_OBJ_FILES)"
 	@echo "DEFAULT_BUILD_TARGET: $(DEFAULT_BUILD_TARGET)"
 	@echo "DEFAULT_SRC_DIR: $(DEFAULT_SRC_DIR)"
 	@echo "DEFAULT_SRC_FILES: $(DEFAULT_SRC_FILES)"
+	@echo "DEFAULT_BUILD_OBJ_FILES: $(DEFAULT_BUILD_OBJ_FILES)"
+	@echo "DEFAULT_DEBUG_OBJ_FILES: $(DEFAULT_DEBUG_OBJ_FILES)"
 	@echo "MAKE_BUILD_DEPS: $(MAKE_BUILD_DEPS)"
 	@echo "MAKE_DEBUG_DEPS: $(MAKE_DEBUG_DEPS)"
 	@echo "INCLUDE_DIR: $(INCLUDE_DIR)"
 	@echo "INCLUDE_DIR_FLAGS: $(INCLUDE_DIR_FLAGS)"
-
+	@echo "xxx: $(xxx)"
 
 .PHONY: all clean
 clean:

@@ -1,13 +1,18 @@
 
-SKY := blue
-define defThings :=
-xxx:=a
-endef
 
+VAR := Aj
 
-$(info sky is $(SKY))
-
-
+ifeq (,$(findstring d,p,j,$(VAR)))
+	result:=not-found
+else
+	result:=found
+endif
 all:
-	$(eval $(call defThings,""))
-	echo $(xxx)
+	@echo $(result)
+	
+last:
+	@echo $(VAR)
+
+check:
+	$(eval VAR += B)
+

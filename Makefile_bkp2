@@ -29,7 +29,6 @@ INCLUDE_LIBRARY_LIBS_FLAGS := $(shell pkg-config --libs $(INCLUDE_LIBRARY))
 #####
 ##### DEFAULT (NO_IDE) SETUP
 #####
-DEFAULT_CLEAN_DIRS :=
 DEFAULT_BUILD_DIR := $(PROJECT_DIR)/$(BUILD_DIR_NAME)
 
 ifeq ($(NO_IDE),run)
@@ -74,25 +73,6 @@ ifeq ($(IDE),ECLIPSE)
 	DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_DIR)/obj,$(DEFAULT_BUILD_OBJ_FILES))
 	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
 	DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
-	DEFAULT_CLEAN_DIRS := $(DEFAULT_BUILD_DIR)
-else ifeq ($(IDE),CODE_BLOCKS)
-	ifeq (,$(MAKECMDGOALS),cleanRelease)
-	ifeq ($(MAKECMDGOALS),Release)
-		DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Release
-		DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Release
-		DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
-		CXXFLAGS += $(CXXFLAGS_BUILD)
-	else ifeq ($(MAKECMDGOALS),Debug)
-		DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Debug
-		DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Debug
-		DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME)
-		CXXFLAGS += $(CXXFLAGS_DEBUG)
-	else ifeq ($(MAKECMDGOALS),cleanRelease)
-		
-	else ifeq ($(MAKECMDGOALS),cleanDebug)
-	else
-		$(error CODE_BLOCK MAKECMDGOALS=$(MAKECMDGOALS) not supported by this Makefile)
-	DEFAULT_CLEAN_DIRS := $(DEFAULT_BUILD_DIR) $(DEFAULT_BUILD_OBJ_DIR)
 endif
 #####
 
@@ -103,10 +83,18 @@ all: check $(DEFAULT_BUILD_TARGET)
 debug: all
 
 ################# CODE::BLOCKS SPECIFIC SETUP
-Release: all
-Debug: debug
-cleanRelease: clean
-cleanDebug: clean
+Release: preRelease all
+Debug: preDebug debug
+preRelease:	
+	$(eval DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Release)
+	$(eval DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Release)
+	$(eval DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME))
+	$(eval CXXFLAGS += $(CXXFLAGS_BUILD))
+preDebug:
+	$(eval DEFAULT_BUILD_DIR := $(PROJECT_DIR)/bin/Debug)
+	$(eval DEFAULT_BUILD_OBJ_DIR := $(PROJECT_DIR)/obj/Debug)
+	$(eval DEFAULT_BUILD_TARGET := $(DEFAULT_BUILD_DIR)/$(TARGET_FILE_NAME))
+	$(eval CXXFLAGS += $(CXXFLAGS_DEBUG))
 #####
 #####
 #####
