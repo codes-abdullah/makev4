@@ -1,10 +1,7 @@
 
 SKY := blue
-define defThings
-	$(shell echo "aa")
-	ifneq ($(SKY),blue)
-		$(error not declared, found: '$(SKY)')
-	endif
+define defThings :=
+xxx:=a
 endef
 
 
@@ -12,4 +9,5 @@ $(info sky is $(SKY))
 
 
 all:
-	$(eval $(call defThings))
+	$(eval $(call defThings,""))
+	echo $(xxx)

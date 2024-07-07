@@ -1,7 +1,6 @@
 ################# for IDE's, uncomment one of below
 #IDE:=CODE_BLOCKS
 IDE:=ECLIPSE
-BUILD_MODE:=debug
 ################# for non-IDE's, specify NO_IDE, either run or debug
 #NO_IDE:=run
 #NO_IDE:=debug
@@ -57,21 +56,19 @@ CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
 
 
 
-#####################3
-
-	
-define check
+#####################
+define check := 
 ################# ECLIPSE SPECIFIC SETUP
 ifeq ($(IDE),ECLIPSE)
-ifeq ($(BUILD_MODE),run)
+ifeq ($(info BUILD_MODE),run)
 xxx+=A
 DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
 CXXFLAGS += $(CXXFLAGS_BUILD)
-else ifeq ($(BUILD_MODE),debug)
+else ifeq ($(info BUILD_MODE),debug)
 xxx+=B
 DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
 CXXFLAGS += $(CXXFLAGS_DEBUG)
-else ifeq ($(BUILD_MODE),linuxtools)
+else ifeq ($(1),linuxtools)
 xxx+=C
 CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
 LDFLAGS += -pg -fprofile-arcs -ftest-coverage
@@ -90,8 +87,8 @@ endef
 
 
 
-
-$(eval $(check))
+BUILD_MODE:=run
+$(eval $(check,run,debug))
 $(info $(xxx))
 
 
