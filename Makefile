@@ -1,6 +1,7 @@
 ################# for IDE's, uncomment one of below
 #IDE:=CODE_BLOCKS
 IDE:=ECLIPSE
+BUILD_MODE:=debug
 ################# for non-IDE's, specify NO_IDE, either run or debug
 #NO_IDE:=run
 #NO_IDE:=debug
@@ -51,13 +52,53 @@ MAKE_DEBUG_DEPS := $(DEFAULT_DEBUG_OBJ_FILES:.o=.d)
 INCLUDE_DIR := $(PROJECT_DIR)/include
 INCLUDE_DIR_FLAGS := $(addprefix -I,$(INCLUDE_DIR))
 CPPFLAGS ?= $(INCLUDE_DIR_FLAGS)
-xxx:=a
 
 
 
 
 
-all: check $(DEFAULT_BUILD_TARGET)
+#####################3
+
+	
+define check
+################# ECLIPSE SPECIFIC SETUP
+ifeq ($(IDE),ECLIPSE)
+ifeq ($(BUILD_MODE),run)
+xxx+=A
+DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
+CXXFLAGS += $(CXXFLAGS_BUILD)
+else ifeq ($(BUILD_MODE),debug)
+xxx+=B
+DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
+CXXFLAGS += $(CXXFLAGS_DEBUG)
+else ifeq ($(BUILD_MODE),linuxtools)
+xxx+=C
+CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
+LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+EXTRA_CLEAN += $(PROJECT_NAME).gcda $(PROJECT_NAME).gcno $(PROJECT_ROOT)gmon.out
+EXTRA_CMDS = rm -rf $(PROJECT_NAME).gcda
+else
+$(error ECLIPSE BUILD_MODE=$(BUILD_MODE) not supported by this Makefile)
+endif
+DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/objXXXXXXXX
+DEFAULT_BUILD_OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(DEFAULT_SRC_FILES))
+DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
+xxx+=ZZZZZZ
+endif
+#####
+endef
+
+
+
+
+$(eval $(check))
+$(info $(xxx))
+
+
+
+
+
+all: $(DEFAULT_BUILD_TARGET)
 
 debug: all
 
@@ -81,41 +122,15 @@ preDebug:
 
 
 $(DEFAULT_BUILD_TARGET): $(DEFAULT_BUILD_OBJ_FILES)
-	@echo "linking now: $(DEFAULT_BUILD_TARGET)"
-	mkdir -p $(dir $(DEFAULT_BUILD_TARGET))
+	#@echo "linking now: $(DEFAULT_BUILD_TARGET)"
+	#mkdir -p $(dir $(DEFAULT_BUILD_TARGET))
 	
 $(DEFAULT_BUILD_OBJ_DIR)/%.cpp.o: $(DEFAULT_SRC_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	@echo $< -o $@
+	@echo "$< -o =====> $@"
 	
 	
-check:
 
-################# ECLIPSE SPECIFIC SETUP
-ifeq ($(IDE),ECLIPSE)
-BUILD_MODE ?= run
-	ifeq ($(BUILD_MODE),run)
-		xxx+=A
-		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/default
-		CXXFLAGS += $(CXXFLAGS_BUILD)
-	else ifeq ($(BUILD_MODE),debug)
-		xxx+=B
-		DEFAULT_BUILD_DIR := $(DEFAULT_BUILD_DIR)/make.debug.linux.x86_64
-		CXXFLAGS += $(CXXFLAGS_DEBUG)
-	else ifeq ($(BUILD_MODE),linuxtools)
-		xxx+=C
-		CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
-		LDFLAGS += -pg -fprofile-arcs -ftest-coverage
-		EXTRA_CLEAN += $(PROJECT_NAME).gcda $(PROJECT_NAME).gcno $(PROJECT_ROOT)gmon.out
-		EXTRA_CMDS = rm -rf $(PROJECT_NAME).gcda
-	else
-		$(error ECLIPSE BUILD_MODE=$(BUILD_MODE) not supported by this Makefile)
-	endif
-	DEFAULT_BUILD_OBJ_DIR := $(DEFAULT_BUILD_DIR)/obj
-	DEFAULT_BUILD_OBJ_FILES := $(patsubst %.cpp, %.cpp.o, $(DEFAULT_SRC_FILES))
-	DEFAULT_BUILD_OBJ_FILES := $(subst $(DEFAULT_SRC_DIR),$(DEFAULT_BUILD_OBJ_DIR),$(DEFAULT_BUILD_OBJ_FILES))
-endif
-#####
 
 
 
@@ -152,7 +167,7 @@ endif
 endif
 
 
-test: check
+test:
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
 	@echo "PROJECT_DIR: $(PROJECT_DIR)"
 	@echo "PROJECT_NAME: $(PROJECT_NAME)"
