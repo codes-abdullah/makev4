@@ -1,11 +1,13 @@
 
 
-VAR := Aj
+VAR1 := x
+VAR2 := B
+MAKECMDGOALS := cleanRelease Release
 
-ifeq (,$(findstring d,p,j,$(VAR)))
-	result:=not-found
-else
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),Release cleanRelease))
 	result:=found
+else
+	result:=not-found
 endif
 all:
 	@echo $(result)
